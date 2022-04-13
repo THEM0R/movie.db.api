@@ -51,6 +51,12 @@ class ParserApi
     {
         $post = \R::xDispense('_movie');
         // data
+
+        foreach ($data as $item){
+            $post->name_original = $data->nameOriginal ?: null;
+        }
+        exit;
+
         $post->name_original = $data->nameOriginal ?: null;
         $post->name_ru = $data->nameRu;
         $post->name_ua = name_ua($data->nameRu) ?: null;
