@@ -1,17 +1,12 @@
 # Ignore node_modules folder
-node_modules
+/.idea/
+/node_modules/
+/vendor/
 # Ignore node_modules folder
-data
-# Ignore node_modules folder
-vendor
-# Ignore node_modules folder
-.idea
-
+/data/
 # Ignore all text files
-composer.lock
-
+.lock
 # Ignore files related to API keys
 .env
-
 # Ignore SASS config files
 .sass-cache
