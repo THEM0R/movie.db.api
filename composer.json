@@ -1,0 +1,17 @@
+{
+    "name": "themor/composer.loc",
+    "require": {
+        "tinify/tinify": "^1.5",
+        "spatie/image": "^1.4",
+        "statickidz/php-google-translate-free": "^1.0",
+        "stichoza/google-translate-php": "^3.2"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "data\\": "data",
+            "engine\\": "engine",
+            "libs\\": "libs"
+        }
+    }
+}
