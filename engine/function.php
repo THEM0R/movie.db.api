@@ -121,7 +121,7 @@ function translit($str) {
     return $str;
 }
 
-function name_ua($name){
+function translate_ua($name){
 
     $result = translate($name);
 

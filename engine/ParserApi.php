@@ -5,6 +5,19 @@ namespace engine;
 class ParserApi
 {
 
+    protected $noSearch = [
+        'countries',
+        'genres',
+        'posterUrl',
+        'posterUrlPreview',
+        'coverUrl',
+        'logoUrl',
+        'nameEn',
+        'lastSync',
+        'imdbId',
+        'year'
+    ];
+
     protected function curl($url, $Api)
     {
         $ch = curl_init($url);
@@ -32,7 +45,7 @@ class ParserApi
             //
 
 //            $this->add_to_base($data, $category);
-            $this->add_to_base_1($data, $category);
+            $this->add_to_base($data, $category);
 
 
             pr1($data);
@@ -46,70 +59,34 @@ class ParserApi
     }
 
 
-
     protected function add_to_base_1($data, $category)
     {
         $post = \R::xDispense('_movie');
         // data
 
-        foreach ($data as $item){
-            $post->name_original = $data->nameOriginal ?: null;
+        foreach ($data as $key => $value) {
+
+            if (!in_array($key, $this->noSearch)) {
+                $post->$key = $value ?: null;
+            }
         }
-        exit;
 
-        $post->name_original = $data->nameOriginal ?: null;
-        $post->name_ru = $data->nameRu;
-        $post->name_ua = name_ua($data->nameRu) ?: null;
-        $post->category = $category;
-        $post->year = $data->year;
+        $post->imdbid = $data->imdbId ?: null;
 
-        $post->slogan = $data->slogan ?: null;
-        $post->slogan_ua = name_ua($data->slogan) ?: null;
+        $post->name_ua = translate_ua($data->nameRu) ?: null;
 
-        $post->description = $data->description ?: null;
-        $post->description_ua = name_ua($data->description) ?: null;
+        $post->slogan_ua = translate_ua($data->slogan) ?: null;
 
-        $post->shortDescription = $data->shortDescription ?: null;
-        $post->shortDescription_ua = name_ua($data->shortDescription) ?: null;
+        $post->description_ua = translate_ua($data->description) ?: null;
 
-        $post->editorAnnotation = $data->editorAnnotation ?: null;
-        $post->isTicketsAvailable = $data->isTicketsAvailable ?: null;
-        $post->productionStatus = $data->productionStatus ?: null;
-        $post->type = $data->type ?: null;
+        $post->shortDescription_ua = translate_ua($data->shortDescription) ?: null;
 
-
-        $post->webUrl = $data->webUrl ?: null;
-
-        $post->kinopoiskId = $data->kinopoiskId ?: null;
-        //$post->imdbId = $data->imdbId ?: null;
-
-        $post->reviewsCount = $data->reviewsCount ?: null;
-        $post->ratingGoodReview = $data->ratingGoodReview ?: null;
-        $post->ratingGoodReviewVoteCount = $data->ratingGoodReviewVoteCount ?: null;
-        $post->ratingKinopoisk = $data->ratingKinopoisk ?: null;
-        $post->ratingKinopoiskVoteCount = $data->ratingKinopoiskVoteCount ?: null;
-        $post->ratingImdb = $data->ratingImdb ?: null;
-        $post->ratingImdbVoteCount = $data->ratingImdbVoteCount ?: null;
-        $post->ratingFilmCritics = $data->ratingFilmCritics ?: null;
-        $post->ratingFilmCriticsVoteCount = $data->ratingFilmCriticsVoteCount ?: null;
-        $post->ratingAwait = $data->ratingAwait ?: null;
-        $post->ratingAwaitCount = $data->ratingAwaitCount ?: null;
-        $post->ratingRfCritics = $data->ratingRfCritics ?: null;
-        $post->ratingRfCriticsVoteCount = $data->ratingRfCriticsVoteCount ?: null;
-        $post->filmLength = $data->filmLength ?: null;
-
-        $post->ratingMpaa = $data->ratingMpaa ?: null;
-        $post->ratingAgeLimits = $data->ratingAgeLimits ?: null;
-
-        //$post->filmLength = $data->filmLength ?: null;
-        //$post->imdbId = $data->imdbId ?: null;
-        //$post->imdbId = $data->imdbId ?: null;
+        $post->year = $this->year($data->year) ?: null;
 
 
         $post->author = 1;
         $post->active = 1;
         $post->date = date('d.m.Y-G.i');
-        //$post->data = date('d.m.Y-G.i');
 
         if (!\R::store($post)) {
             //$errors['move'] = 'Не удалось добавить Фильм!';
@@ -133,12 +110,14 @@ class ParserApi
             // good
             $move_id = \R::getInsertID();
 
+            //pr1($move_id);
+
             $move = \R::load('_movie', $move_id);
 
             // url
-            $url = $this->url($data['name'], $move_id);
-
-            $move->url = $url ?: null;
+//            $url = $this->url($data->nameRu, $move_id);
+//
+//            $move->url = $url ?: null;
 
             // url end
 
@@ -155,7 +134,7 @@ class ParserApi
             /* year end */
 
             /* Janre */
-
+            $this->genres($data->genres, $move_id);
             /* Janre end */
             /* Country */
 
@@ -171,11 +150,31 @@ class ParserApi
             // store
             if (\R::store($move)) {
 
-                add_to_file($move_id, $data);
+                //add_to_file($move_id, $data);
                 return 'материал ' . $data['name'] . ' успешно добавлен';
             }
         }
 
+    }
+
+    protected function year($year)
+    {
+        if ($year != '') {
+
+            $year = htmlentities($year);
+            $year = str_replace("&nbsp;", '', $year);
+
+            if (isInt($year)) {
+
+                $year = \R::findOrCreate('_year', ['name' => $year]);
+                if ($year) {
+
+                    // $move->year = $year->id;
+                    return $year->id;
+                }
+            }
+
+        }
     }
 
     protected function url($name, $id)
@@ -342,60 +341,32 @@ class ParserApi
         }
     }
 
-    protected function year()
+
+    protected function genres($genres, $move_id)
     {
-        if ($data['year'] != '') {
 
-            $data['year'] = htmlentities($data['year']);
-            $data['year'] = str_replace("&nbsp;", '', $data['year']);
+        $genres = json_decode(json_encode($genres), true);
 
-            if (isInt($data['year'])) {
 
-                $year = \R::findOrCreate('_year', ['name' => $data['year']]);
-                if ($year) {
-                    $move->year = $year->id;
-                }
-            }
+        if ($genres != '') {
 
-        }
-    }
+            foreach ($genres as $key => $value) {
 
-    protected function janre()
-    {
-        if ($data['janre'] != '') {
-
-            $data['janre'] = clearSting($data['janre']);
-
-            $data['janre'] = explode(',', $data['janre']);
-            $data['janre'] = array_diff($data['janre'], ['']);
-
-            foreach ($data['janre'] as $item) {
+                $item = $value['genre'];
 
                 $item = clearSting($item);
 
                 if ($item != '') {
 
-                    if ($item == 'Мультфильм') {
-                        $move->category = 3;
-                    }
-
                     // namee ua
-                    $name_ua = name_ua($item);
+                    $name_ua = translate_ua($item);
 
-                    $count = \R::count('_janre', ' WHERE name_ru = ? ', [$item]);
 
-                    if ($count > 0) {
-
-                        $janre = \R::findOne('_janre', ' WHERE name_ru = ? ', [$item]);
-
-                    } else {
-
-                        $janre = \R::findOrCreate('_janre', [
-                                'name_ru' => $item,
-                                'name_ua' => $name_ua
-                            ]
-                        );
-                    }
+                    $janre = \R::findOrCreate('_janre', [
+                            'name_ru' => $item,
+                            'name_ua' => $name_ua
+                        ]
+                    );
 
                     if ($janre) {
 
