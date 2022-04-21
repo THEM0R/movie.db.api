@@ -41,11 +41,10 @@ class ParserApi
         if (!isset($data->status)) {
             //$_SESSION['data'] = $data;
             $data = $_SESSION['data'];
-            echo 'success';
-            //
 
-//            $this->add_to_base($data, $category);
-            $this->add_to_base($data, $category);
+            if ($this->add_to_base($data, $category)) {
+                echo 'add ' . $data->nameRu . ' success';
+            }
 
 
             pr1($data);
@@ -81,7 +80,7 @@ class ParserApi
 
         $post->shortDescription_ua = translate_ua($data->shortDescription) ?: null;
 
-        $post->year = $this->year($data->year) ?: null;
+        //$post->year = $this->year($data->year) ?: null;
 
 
         $post->author = 1;
@@ -130,11 +129,11 @@ class ParserApi
 
             /* Screens end */
             /* year */
-
+            $this->connect($data->year, 'year', $move_id);
             /* year end */
 
             /* Janre */
-            $this->genres($data->genres, $move_id);
+            $this->connect($data->genres, 'genre', $move_id);
             /* Janre end */
             /* Country */
 
@@ -151,13 +150,77 @@ class ParserApi
             if (\R::store($move)) {
 
                 //add_to_file($move_id, $data);
-                return 'материал ' . $data['name'] . ' успешно добавлен';
+                //return 'материал ' . $data->nameRu . ' успешно добавлен';
+                return $data->nameRu;
             }
         }
 
     }
 
-    protected function year($year)
+    protected function connect($data, $table_name, $move_id)
+    {
+
+        //pr1($data);
+
+        $data = json_decode(json_encode($data), true);
+
+        if (!is_array($data)) {
+
+            foreach ($data as $key => $value) {
+
+                $item = $value[$table_name];
+
+                $item = clearSting($item);
+
+                if ($item != '') {
+
+                    // namee ua
+                    $name_ua = translate_ua($item);
+
+
+                    $object = \R::findOrCreate('_' . $table_name, [
+                            'name_ru' => $item,
+                            'name_ua' => $name_ua
+                        ]
+                    );
+
+                    if ($object) {
+
+                        $name = $table_name . '_id';
+
+                        $connect = \R::xDispense('_movie_' . $table_name);
+                        $connect->movie_id = $move_id;
+                        $connect->$name = $object->id;
+
+                        \R::store($connect);
+                    }
+                }
+            }
+        } else {
+            // namee ua
+            $name_ua = translate_ua($data);
+
+
+            $object = \R::findOrCreate('_' . $table_name, [
+                    'name_ru' => $data,
+                    'name_ua' => $name_ua
+                ]
+            );
+
+            if ($object) {
+
+                $name = $table_name . '_id';
+
+                $connect = \R::xDispense('_movie_' . $table_name);
+                $connect->movie_id = $move_id;
+                $connect->$name = $object->id;
+
+                \R::store($connect);
+            }
+        }
+    }
+
+    protected function year($year, $move_id)
     {
         if ($year != '') {
 
@@ -167,10 +230,21 @@ class ParserApi
             if (isInt($year)) {
 
                 $year = \R::findOrCreate('_year', ['name' => $year]);
+
                 if ($year) {
 
-                    // $move->year = $year->id;
-                    return $year->id;
+                    //
+                    $post = \R::xDispense('_movie_year');
+
+                    $post->movie_id = $move_id ?: null;
+                    $post->year_id = $year->id ?: null;
+
+
+                    if (\R::store($post)) {
+                        return true;
+                    }
+
+                    return false;
                 }
             }
 
@@ -381,37 +455,30 @@ class ParserApi
         }
     }
 
-    protected function country()
+    protected function country($countrys, $move_id)
     {
-        if ($data['country'] != '') {
+        $countrys = json_decode(json_encode($countrys), true);
 
-            $data['country'] = clearSting($data['country']);
 
-            $data['country'] = explode(',', $data['country']);
-            $data['country'] = array_diff($data['country'], ['']);
+        if ($countrys != '') {
 
-            foreach ($data['country'] as $item) {
+            foreach ($countrys as $key => $value) {
+
+                $item = $value['country'];
 
                 $item = clearSting($item);
 
                 if ($item != '') {
 
                     // namee ua
-                    $name_ua = name_ua($item);
+                    $name_ua = translate_ua($item);
 
-                    $count = \R::count('_country', ' WHERE name_ru = ? ', [$item]);
 
-                    if ($count > 0) {
-
-                        $country = \R::findOne('_country', ' WHERE name_ru = ? ', [$item]);
-
-                    } else {
-
-                        $country = \R::findOrCreate('_country', [
+                    $country = \R::findOrCreate('_country', [
                             'name_ru' => $item,
                             'name_ua' => $name_ua
-                        ]);
-                    }
+                        ]
+                    );
 
                     if ($country) {
 
