@@ -14,9 +14,11 @@ $parser = new ParserApi();
 // ini
 $Api = 'c785dff1-f7a7-4637-a7f3-d2ab0161d19e';
 $Move_url = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/301';
+$url = 'https://kinopoiskapiunofficial.tech/api/';
 $list_url = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/top?type=TOP_250_BEST_FILMS&page=1';
 // ini
 
+$filters = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/filters';
 
 //$res = getArrayToUrl($list_url, $Api);
 
@@ -26,6 +28,6 @@ $list_url = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/top?type=TOP_250
 //
 //$movies = $res['films'];
 
-$parser->parser($Move_url, $Api, $category);
+$parser->parser($filters, $Api, $category);
 
 /**/

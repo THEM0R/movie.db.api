@@ -36,16 +36,18 @@ class ParserApi
 
     public function parser($url, $Api, $category = 1)
     {
-
-        $box_office = $this->curl('https://kinopoiskapiunofficial.tech/api/v2.2/films/301/box_office', $Api);
-
-        pr1($box_office);
+        // бюджет
+        //$box_office = $this->curl($url.'/box_office', $Api);
+        // актери
+        //$staff = $this->curl('https://kinopoiskapiunofficial.tech/api/v1/staff?filmId=301', $Api);
 
         //$data = $this->curl($url, $Api);
 
         if (!isset($data->status)) {
             //$_SESSION['data'] = $data;
-            //$data = $_SESSION['data'];
+            $data = $_SESSION['data'];
+
+            $this->addFilters($data);
 
 //            if ($this->add_to_base($data, $category)) {
 //                echo 'add ' . $data->nameRu . ' success';
@@ -59,6 +61,38 @@ class ParserApi
         }
 
 
+    }
+
+    protected function addFilters($data){
+
+        $data = $this->objToArr($data);
+
+        // countries
+        // genres
+
+        foreach ($data as $k => $v) {
+            pr1($k);
+        }
+
+
+        $post = \R::xDispense('_movie');
+        // data
+
+//        foreach ($data as $key => $value) {
+//
+//            if (!in_array($key, $this->noSearch)) {
+//                $post->$key = $value ?: null;
+//            }
+//        }
+
+        //$post->imdbid = $data->imdbId ?: null;
+
+        $post->name_ru = Ru($data->nameRu) ?: null;
+        $post->name_ua = translate_ua($data->nameRu) ?: null;
+
+        $post->date = date('d.m.Y-G.i');
+
+        \R::store($post);
     }
 
 
