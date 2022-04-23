@@ -6,6 +6,7 @@ class ParserApi
 {
 
     protected $noSearch = [
+        'nameRu',
         'countries',
         'genres',
         'posterUrl',
@@ -36,18 +37,21 @@ class ParserApi
     public function parser($url, $Api, $category = 1)
     {
 
+        $box_office = $this->curl('https://kinopoiskapiunofficial.tech/api/v2.2/films/301/box_office', $Api);
+
+        pr1($box_office);
+
         //$data = $this->curl($url, $Api);
 
         if (!isset($data->status)) {
             //$_SESSION['data'] = $data;
-            $data = $_SESSION['data'];
+            //$data = $_SESSION['data'];
 
-            if ($this->add_to_base($data, $category)) {
-                echo 'add ' . $data->nameRu . ' success';
-            }
+//            if ($this->add_to_base($data, $category)) {
+//                echo 'add ' . $data->nameRu . ' success';
+//            }
 
 
-            pr1($data);
         } else {
             echo 'error';
             //
@@ -63,28 +67,29 @@ class ParserApi
         $post = \R::xDispense('_movie');
         // data
 
-        foreach ($data as $key => $value) {
+//        foreach ($data as $key => $value) {
+//
+//            if (!in_array($key, $this->noSearch)) {
+//                $post->$key = $value ?: null;
+//            }
+//        }
 
-            if (!in_array($key, $this->noSearch)) {
-                $post->$key = $value ?: null;
-            }
-        }
+        //$post->imdbid = $data->imdbId ?: null;
 
-        $post->imdbid = $data->imdbId ?: null;
-
+        $post->name_ru = Ru($data->nameRu) ?: null;
         $post->name_ua = translate_ua($data->nameRu) ?: null;
 
-        $post->slogan_ua = translate_ua($data->slogan) ?: null;
+        //$post->slogan_ua = translate_ua($data->slogan) ?: null;
 
-        $post->description_ua = translate_ua($data->description) ?: null;
+        //$post->description_ua = translate_ua($data->description) ?: null;
 
-        $post->shortDescription_ua = translate_ua($data->shortDescription) ?: null;
+        //$post->shortDescription_ua = translate_ua($data->shortDescription) ?: null;
 
         //$post->year = $this->year($data->year) ?: null;
 
 
-        $post->author = 1;
-        $post->active = 1;
+        //$post->author = 1;
+        //$post->active = 1;
         $post->date = date('d.m.Y-G.i');
 
         if (!\R::store($post)) {
@@ -120,8 +125,18 @@ class ParserApi
 
             // url end
 
+            /* year */
+            //$this->connect($data->year, 'year', $move_id);
+            /* year end */
+
+            /* Janre */
+            //$this->connect($data->genres, 'genre', $move_id);
+            /* Janre end */
+            /* Country */
+            //$this->connect($data->countries, 'country', $move_id);
+            /* Country end */
             // poster
-            //$move->poster = $this->poster($data['poster'], $move_id, $move->date);
+            //$move->poster = $this->poster($data->posterUrl, $move_id, $move->date);
             // poster end
 
 
@@ -129,9 +144,7 @@ class ParserApi
 
             /* Screens end */
 
-            /* Country */
 
-            /* Country end */
             /* Director */
 
             /* Director end */
@@ -139,13 +152,7 @@ class ParserApi
 
             /* Cast end */
 
-            /* year */
-            //$this->connect($data->year, 'year', $move_id);
-            /* year end */
 
-            /* Janre */
-            $this->connect($data->genres, 'genre', $move_id);
-            /* Janre end */
             // store
             if (\R::store($move)) {
 
@@ -157,7 +164,74 @@ class ParserApi
 
     }
 
-    protected function objToArr($object){
+    protected function poster($poster, $id, $date)
+    {
+
+        if ($poster != '') {
+
+            //if (is_image($poster)) {
+
+            pr1($poster);
+
+            // Создадим папку если её нет
+            $date = explode('-', $date);
+
+            $directory = POSTER_DIR . $date[0] . '-' . explode('.', $date[1])[0];
+
+            if (!is_dir($directory)) {
+                if (!mkdir($directory)) {
+                    echo 'не удалось создать папку<br>';
+                }
+            }
+            if (!chmod($directory, 0777)) {
+                echo 'не удалось задать права 0777<br>';
+            }
+
+            mkdir($directory . '/original/');
+            mkdir($directory . '/mini/');
+            mkdir($directory . '/micro/');
+
+            // random name
+            $name = $id . '.' . end(explode('.', $poster));
+            // Создаем изображение на сервере
+            if (file_put_contents($directory . '/original/' . POSTER_NAME . $name, file_get_contents($poster))) {
+
+                Image::load($directory . '/original/' . POSTER_NAME . $name)
+                    ->crop(Manipulations::CROP_TOP, 300, 400)
+                    //->width(300)
+                    //->height(250)
+                    ->format(Manipulations::FORMAT_JPG)
+                    ->quality(80)
+                    ->optimize()
+                    ->save();
+
+                Image::load($directory . '/original/' . POSTER_NAME . $name)
+                    ->width(180)
+                    ->format(Manipulations::FORMAT_JPG)
+                    ->quality(80)
+                    ->optimize()
+                    ->save($directory . '/mini/' . POSTER_NAME . $name);
+
+                Image::load($directory . '/original/' . POSTER_NAME . $name)
+                    ->width(40)
+                    ->format(Manipulations::FORMAT_JPG)
+                    ->quality(50)
+                    ->optimize()
+                    ->save($directory . '/micro/' . POSTER_NAME . $name);
+
+                return $name;
+            } else {
+                return null;
+            }
+
+        }
+
+        return false;
+
+    }
+
+    protected function objToArr($object)
+    {
         return json_decode(json_encode($object), true);
     }
 
@@ -167,47 +241,54 @@ class ParserApi
         $data = $this->objToArr($data);
 
         // провірка на масив
-        if (is_array($data)){
-
+        if (is_array($data)) {
             foreach ($data as $key => $value) {
-
-                $item = $value[$table_name];
-
-                $item = clearSting($item);
-
-                if ($item != '') {
-
-                    // namee ua
-                    $name_ua = translate_ua($item);
-
-
-                    $object = \R::findOrCreate('_' . $table_name, [
-                            'name_ru' => $item,
-                            'name_ua' => $name_ua
-                        ]
-                    );
-
-                    if ($object) {
-
-                        $name = $table_name . '_id';
-
-                        $connect = \R::xDispense('_movie_' . $table_name);
-                        $connect->movie_id = $move_id;
-                        $connect->$name = $object->id;
-
-                        \R::store($connect);
-                    }
-                }
+                $this->connectItem($value[$table_name], $table_name, $move_id);
             }
+        } else if (is_int($data)) {
+            $this->connectItem($data, $table_name, $move_id);
         }
 
-        //pr3($data);
+    }
 
-        //$data = $this->objToArr($data);
+    protected function connectItem($data, $table_name, $move_id)
+    {
 
-        pr3(is_array($data));
+        $item = clearSting($data);
+
+        if ($item != '') {
+
+            // name ua
+            $name_ua = translate_ua($item);
 
 
+            if ($table_name == 'year') {
+                $object = \R::findOrCreate('_' . $table_name, [
+                        $table_name => $item,
+                    ]
+                );
+
+            } else {
+                $object = \R::findOrCreate('_' . $table_name, [
+                        'name_ru' => Ru($item),
+                        'name_ua' => $name_ua,
+                        'url' => translit($item)
+                    ]
+                );
+            }
+
+
+            if ($object) {
+
+                $name = $table_name . '_id';
+
+                $connect = \R::xDispense('_movie_' . $table_name);
+                $connect->movie_id = $move_id;
+                $connect->$name = $object->id;
+
+                \R::store($connect);
+            }
+        }
     }
 
     protected function year($year, $move_id)
@@ -259,71 +340,6 @@ class ParserApi
         }
     }
 
-    protected function poster($poster, $id, $date)
-    {
-
-        if ($poster != '') {
-
-            if (is_image($poster)) {
-
-
-                // Создадим папку если её нет
-                $date = explode('-', $date);
-
-                $directory = POSTER_DIR . $date[0] . '-' . explode('.', $date[1])[0];
-
-                if (!is_dir($directory)) {
-                    if (!mkdir($directory)) {
-                        echo 'не удалось создать папку<br>';
-                    }
-                }
-                if (!chmod($directory, 0777)) {
-                    echo 'не удалось задать права 0777<br>';
-                }
-
-                mkdir($directory . '/original/');
-                mkdir($directory . '/mini/');
-                mkdir($directory . '/micro/');
-
-                // random name
-                $name = $id . '.' . end(explode('.', $poster));
-                // Создаем изображение на сервере
-                if (file_put_contents($directory . '/original/' . POSTER_NAME . $name, file_get_contents($poster))) {
-
-                    Image::load($directory . '/original/' . POSTER_NAME . $name)
-                        ->crop(Manipulations::CROP_TOP, 300, 400)
-                        //->width(300)
-                        //->height(250)
-                        ->format(Manipulations::FORMAT_JPG)
-                        ->quality(80)
-                        ->optimize()
-                        ->save();
-
-                    Image::load($directory . '/original/' . POSTER_NAME . $name)
-                        ->width(180)
-                        ->format(Manipulations::FORMAT_JPG)
-                        ->quality(80)
-                        ->optimize()
-                        ->save($directory . '/mini/' . POSTER_NAME . $name);
-
-                    Image::load($directory . '/original/' . POSTER_NAME . $name)
-                        ->width(40)
-                        ->format(Manipulations::FORMAT_JPG)
-                        ->quality(50)
-                        ->optimize()
-                        ->save($directory . '/micro/' . POSTER_NAME . $name);
-
-                    return $name;
-                } else {
-                    return null;
-                }
-            }
-
-        }
-
-        return false;
-
-    }
 
     protected function screens($datas)
     {
