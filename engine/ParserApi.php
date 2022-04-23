@@ -128,13 +128,7 @@ class ParserApi
             /* Screens */
 
             /* Screens end */
-            /* year */
-            $this->connect($data->year, 'year', $move_id);
-            /* year end */
 
-            /* Janre */
-            $this->connect($data->genres, 'genre', $move_id);
-            /* Janre end */
             /* Country */
 
             /* Country end */
@@ -145,7 +139,13 @@ class ParserApi
 
             /* Cast end */
 
+            /* year */
+            //$this->connect($data->year, 'year', $move_id);
+            /* year end */
 
+            /* Janre */
+            $this->connect($data->genres, 'genre', $move_id);
+            /* Janre end */
             // store
             if (\R::store($move)) {
 
@@ -157,14 +157,17 @@ class ParserApi
 
     }
 
+    protected function objToArr($object){
+        return json_decode(json_encode($object), true);
+    }
+
     protected function connect($data, $table_name, $move_id)
     {
+        // обєкт в масив
+        $data = $this->objToArr($data);
 
-        //pr1($data);
-
-        $data = json_decode(json_encode($data), true);
-
-        if (!is_array($data)) {
+        // провірка на масив
+        if (is_array($data)){
 
             foreach ($data as $key => $value) {
 
@@ -196,28 +199,15 @@ class ParserApi
                     }
                 }
             }
-        } else {
-            // namee ua
-            $name_ua = translate_ua($data);
-
-
-            $object = \R::findOrCreate('_' . $table_name, [
-                    'name_ru' => $data,
-                    'name_ua' => $name_ua
-                ]
-            );
-
-            if ($object) {
-
-                $name = $table_name . '_id';
-
-                $connect = \R::xDispense('_movie_' . $table_name);
-                $connect->movie_id = $move_id;
-                $connect->$name = $object->id;
-
-                \R::store($connect);
-            }
         }
+
+        //pr3($data);
+
+        //$data = $this->objToArr($data);
+
+        pr3(is_array($data));
+
+
     }
 
     protected function year($year, $move_id)
