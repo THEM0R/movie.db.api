@@ -53,7 +53,7 @@ class ParserApi
 //                echo 'add ' . $data->nameRu . ' success';
 //            }
 
-
+            pr1($data);
         } else {
             echo 'error';
             //
@@ -63,36 +63,39 @@ class ParserApi
 
     }
 
-    protected function addFilters($data){
+    protected function addFilters($data)
+    {
 
         $data = $this->objToArr($data);
 
         // countries
         // genres
 
-        foreach ($data as $k => $v) {
-            pr1($k);
+        foreach ($data['countries'] as $i) {
+
+            $name = Ru($i['country']);
+
+            $post = \R::xDispense('_countries');
+
+            $post->name_ru = $name ?: null;
+            $post->name_ua = translate_ua($name) ?: null;
+            $post->url = translit($name) ?: null;
+
+
+            \R::store($post);
+
         }
 
 
-        $post = \R::xDispense('_movie');
-        // data
-
-//        foreach ($data as $key => $value) {
+//        $post = \R::xDispense('_movie');
+//        // data
 //
-//            if (!in_array($key, $this->noSearch)) {
-//                $post->$key = $value ?: null;
-//            }
-//        }
-
-        //$post->imdbid = $data->imdbId ?: null;
-
-        $post->name_ru = Ru($data->nameRu) ?: null;
-        $post->name_ua = translate_ua($data->nameRu) ?: null;
-
-        $post->date = date('d.m.Y-G.i');
-
-        \R::store($post);
+//        $post->name_ru = Ru($data->nameRu) ?: null;
+//        $post->name_ua = translate_ua($data->nameRu) ?: null;
+//
+//        $post->date = date('d.m.Y-G.i');
+//
+//        \R::store($post);
     }
 
 
