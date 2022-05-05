@@ -71,18 +71,25 @@ class ParserApi
         // countries
         // genres
 
+        //pr1($data['countries']);
+
         foreach ($data['countries'] as $i) {
+
 
             $name = Ru($i['country']);
 
-            $post = \R::xDispense('_countries');
+            if ($name != '') {
 
-            $post->name_ru = $name ?: null;
-            $post->name_ua = translate_ua($name) ?: null;
-            $post->url = translit($name) ?: null;
+                $post = \R::xDispense('_countries');
+
+                $post->name_ru = $name ?: null;
+                $post->name_ua = translate_ua($name) ?: null;
+                $post->url = translit($name) ?: null;
 
 
-            \R::store($post);
+                \R::store($post);
+            }
+
 
         }
 
